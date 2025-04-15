@@ -5,40 +5,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { VOICE_PROFILE, ToneFlair, CommunicationStyle, ContentFormat, Generation, ContentLength } from '@/utils/voiceProfiles';
+import { FileUp } from 'lucide-react';
 
-const VOICE_PROFILE = {
-  communicationStyle: [
-    "Direct",
-    "Encouraging",
-    "Playful",
-    "Witty",
-    "Professional",
-    "Warm",
-    "Bold"
-  ],
-  contentFormat: [
-    "Step-by-Step",
-    "Quick Summary",
-    "Detailed Breakdown",
-    "Action List",
-    "Analytical",
-    "Conversational"
-  ],
-  generation: [
-    "Gen Alpha",
-    "Gen Z",
-    "Millennials",
-    "Wise Millennials",
-    "Gen X",
-    "Boomers",
-    "Silent Generation",
-    "Mixed"
-  ]
-};
+interface SidebarProps {
+  onProfileChange: (profile: {
+    communicationStyle: CommunicationStyle;
+    contentFormat: ContentFormat;
+    generation: Generation;
+    length: ContentLength;
+    toneFlair: ToneFlair;
+    ultraDirect: boolean;
+    referenceText?: string;
+  }) => void;
+}
 
-const Sidebar = () => {
-  const [toneFlair, setToneFlair] = useState(50);
+const Sidebar = ({ onProfileChange }: SidebarProps) => {
+  const [communicationStyle, setCommunicationStyle] = useState<CommunicationStyle>("Witty");
+  const [contentFormat, setContentFormat] = useState<ContentFormat>("Quick Summary");
+  const [generation, setGeneration] = useState<Generation>("Mixed");
+  const [length, setLength] = useState<ContentLength>("Medium");
+  const [toneFlair, setToneFlair] = useState<number>(50);
   const [ultraDirect, setUltraDirect] = useState(false);
+  const [referenceText, setReferenceText] = useState<string>("");
+  
+  const toneFlairLabel = (): ToneFlair => {
+    if (toneFlair < 33) return "Nip";
+    if (toneFlair < 66) return "Slash";
+    return "Blaze";
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setReferenceText(text);
+      updateProfile({ referenceText: text });
+    };
+    reader.readAsText(file);
+  };
+  
+  const updateProfile = (changes: Partial<ReturnType<typeof getProfile>>) => {
+    const newProfile = {
+      ...getProfile(),
+      ...changes
+    };
+    onProfileChange(newProfile);
+  };
+  
+  const getProfile = () => ({
+    communicationStyle,
+    contentFormat,
+    generation,
+    length,
+    toneFlair: toneFlairLabel(),
+    ultraDirect,
+    referenceText
+  });
 
   return (
     <div className="w-64 h-full bg-white border-r p-4 flex flex-col gap-6">
@@ -48,80 +75,193 @@ const Sidebar = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-2">
-          <Label>Communication Style</Label>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select style" />
-            </SelectTrigger>
-            <SelectContent>
-              {VOICE_PROFILE.communicationStyle.map((style) => (
-                <SelectItem key={style} value={style.toLowerCase()}>
-                  {style}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Content Format</Label>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select format" />
-            </SelectTrigger>
-            <SelectContent>
-              {VOICE_PROFILE.contentFormat.map((format) => (
-                <SelectItem key={format} value={format.toLowerCase()}>
-                  {format}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Generation</Label>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select generation" />
-            </SelectTrigger>
-            <SelectContent>
-              {VOICE_PROFILE.generation.map((gen) => (
-                <SelectItem key={gen} value={gen.toLowerCase()}>
-                  {gen}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Tone Flair</Label>
-          <Slider
-            value={[toneFlair]}
-            onValueChange={([value]) => setToneFlair(value)}
-            max={100}
-            step={1}
-          />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Nip</span>
-            <span>Slash</span>
-            <span>Blaze</span>
+        <TooltipProvider>
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Communication Style</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Think, 'If I was my audience, how would I like to be spoken to?'</p>
+              </TooltipContent>
+            </Tooltip>
+            <Select 
+              value={communicationStyle} 
+              onValueChange={(value: CommunicationStyle) => {
+                setCommunicationStyle(value);
+                updateProfile({ communicationStyle: value });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(VOICE_PROFILE.communicationStyle).map(([style, description]) => (
+                  <SelectItem key={style} value={style}>
+                    <div className="flex flex-col">
+                      <span>{style}</span>
+                      <span className="text-xs text-muted-foreground">{description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <Label>Ultra-Direct Mode</Label>
-          <Switch
-            checked={ultraDirect}
-            onCheckedChange={setUltraDirect}
-          />
-        </div>
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Content Format</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>What are we going with today, detailed, chatty, action?</p>
+              </TooltipContent>
+            </Tooltip>
+            <Select 
+              value={contentFormat} 
+              onValueChange={(value: ContentFormat) => {
+                setContentFormat(value);
+                updateProfile({ contentFormat: value });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(VOICE_PROFILE.contentFormat).map(([format, description]) => (
+                  <SelectItem key={format} value={format}>
+                    <div className="flex flex-col">
+                      <span>{format}</span>
+                      <span className="text-xs text-muted-foreground">{description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Button variant="outline" className="w-full">
-          Upload Reference Doc
-        </Button>
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Generation</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>This adjusts tone pacing, references, and formality.</p>
+              </TooltipContent>
+            </Tooltip>
+            <Select 
+              value={generation} 
+              onValueChange={(value: Generation) => {
+                setGeneration(value);
+                updateProfile({ generation: value });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select generation" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(VOICE_PROFILE.generation).map(([gen, description]) => (
+                  <SelectItem key={gen} value={gen}>
+                    <div className="flex flex-col">
+                      <span>{gen}</span>
+                      <span className="text-xs text-muted-foreground">{description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Content Length</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>How detailed should the response be?</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="flex gap-2">
+              {Object.keys(VOICE_PROFILE.length).map((len) => (
+                <Button 
+                  key={len} 
+                  variant={length === len ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setLength(len as ContentLength);
+                    updateProfile({ length: len as ContentLength });
+                  }}
+                >
+                  {len}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Tone Flair</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Choose how bold you want the writing to sound: Subtly edgy (Nip), sharp but stylish (Slash) or bold and direct (Blaze).</p>
+              </TooltipContent>
+            </Tooltip>
+            <Slider
+              value={[toneFlair]}
+              onValueChange={([value]) => {
+                setToneFlair(value);
+                updateProfile({ toneFlair: toneFlairLabel() });
+              }}
+              max={100}
+              step={1}
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Nip</span>
+              <span>Slash</span>
+              <span>Blaze</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label className="cursor-help">Ultra-Direct Mode</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Override all personality settings to deliver sharp, efficient content with minimal tone.</p>
+              </TooltipContent>
+            </Tooltip>
+            <Switch
+              checked={ultraDirect}
+              onCheckedChange={(checked) => {
+                setUltraDirect(checked);
+                updateProfile({ ultraDirect: checked });
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label htmlFor="file-upload" className="cursor-help">Upload Reference Document</Label>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upload a reference doc. AI is not secure, don't upload secrets or scandals.</p>
+              </TooltipContent>
+            </Tooltip>
+            <Button variant="outline" className="w-full" onClick={() => document.getElementById('file-upload')?.click()}>
+              <FileUp className="mr-2 h-4 w-4" /> Upload Reference Doc
+            </Button>
+            <input 
+              id="file-upload" 
+              type="file" 
+              className="hidden" 
+              onChange={handleFileUpload}
+              accept=".txt,.pdf,.docx"
+            />
+          </div>
+        </TooltipProvider>
       </div>
     </div>
   );
