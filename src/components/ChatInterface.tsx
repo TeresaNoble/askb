@@ -29,7 +29,7 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
     setLastPrompt(input);
     
     // Add user message
-    const userMessage = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     
     // Clear input and hide instructions
@@ -57,16 +57,18 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
         `• Ultra-Direct: ${userProfile.ultraDirect ? "Enabled" : "Disabled"}\n` +
         (userProfile.referenceText ? "• Reference document has been included" : "");
       
-      setMessages(prev => [...prev, { 
+      const assistantMessage: Message = { 
         role: 'assistant',
         content: simulatedResponse
-      }]);
+      };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error generating response:', error);
-      setMessages(prev => [...prev, { 
+      const errorMessage: Message = { 
         role: 'assistant',
         content: 'Sorry, there was an error generating a response. Please try again.'
-      }]);
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsGenerating(false);
     }
