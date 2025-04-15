@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Download, RefreshCcw } from 'lucide-react';
+import { Loader2, Download, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { UserProfile, buildInstructions } from '@/utils/voiceProfiles';
 
 interface Message {
@@ -21,33 +22,27 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastPrompt, setLastPrompt] = useState('');
   const [showInstructions, setShowInstructions] = useState(true);
+  const [downloadFormat, setDownloadFormat] = useState<'text' | 'word'>('text');
+
+  const { toast } = useToast();
 
   const handleSend = async () => {
     if (!input.trim() || isGenerating) return;
     
-    // Save prompt for potential reuse
     setLastPrompt(input);
     
-    // Add user message
     const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     
-    // Clear input and hide instructions
     setInput('');
     setShowInstructions(false);
     setIsGenerating(true);
     
-    // In a real app, this would be an API call to OpenAI
-    // For now, we'll simulate a response
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Build system instructions based on user profile
       const instructions = buildInstructions(userProfile);
       
-      // Simulate AI response
-      // In a real implementation, you would send the instructions and user message to OpenAI
       const simulatedResponse = "This is a simulated response based on your profile settings. In a complete implementation, this would connect to OpenAI with your specified tone settings:\n\n" +
         `• Communication Style: ${userProfile.communicationStyle}\n` +
         `• Content Format: ${userProfile.contentFormat}\n` +
@@ -80,32 +75,44 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
   };
 
   const handleDownload = () => {
-    // Find the last assistant message
     const assistantMessages = messages.filter(m => m.role === 'assistant');
     if (assistantMessages.length === 0) return;
     
     const content = assistantMessages[assistantMessages.length - 1].content;
     
-    // Create and download text file
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    
-    // Generate filename based on first few words of the prompt
-    const words = lastPrompt.toLowerCase().match(/\b\w+\b/g) || ['content'];
-    const baseFilename = words.slice(0, 2).join('');
-    const date = new Date().toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric' 
-    }).replace(/ /g, '');
-    
-    a.href = url;
-    a.download = `${baseFilename}_${date}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (downloadFormat === 'word') {
+      const header = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Export HTML to Word Document with JavaScript</title></head><body>';
+      const footer = "</body></html>";
+      const sourceHTML = header + content.replace(/\n/g, "<br>") + footer;
+      
+      const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+      const fileDownload = document.createElement("a");
+      
+      document.body.appendChild(fileDownload);
+      fileDownload.href = source;
+      fileDownload.download = 'content.doc';
+      fileDownload.click();
+      document.body.removeChild(fileDownload);
+    } else {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      
+      const words = lastPrompt.toLowerCase().match(/\b\w+\b/g) || ['content'];
+      const baseFilename = words.slice(0, 2).join('');
+      const date = new Date().toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      }).replace(/ /g, '');
+      
+      a.href = url;
+      a.download = `${baseFilename}_${date}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -117,6 +124,9 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <h1 className="text-2xl font-semibold">Content Writer AI</h1>
+      </div>
       <ScrollArea className="flex-1 p-4">
         {showInstructions && messages.length === 0 && (
           <div className="p-6 bg-secondary/10 rounded-lg mb-4">
@@ -143,7 +153,7 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
             className={`mb-4 p-3 rounded-lg max-w-[80%] ${
               message.role === 'user'
                 ? 'ml-auto bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground'
+                : 'bg-[#FDE1D3] text-black border-2 border-[#F97316]'
             }`}
           >
             {message.content.split('\n').map((line, i) => (
@@ -175,13 +185,28 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
             </Button>
           )}
           {messages.some(m => m.role === 'assistant') && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownload}
-            >
-              <Download className="h-3 w-3 mr-1" /> Download
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setDownloadFormat('text');
+                  handleDownload();
+                }}
+              >
+                <Download className="h-3 w-3 mr-1" /> Text
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setDownloadFormat('word');
+                  handleDownload();
+                }}
+              >
+                <Download className="h-3 w-3 mr-1" /> Word
+              </Button>
+            </div>
           )}
         </div>
         <div className="flex gap-2">
