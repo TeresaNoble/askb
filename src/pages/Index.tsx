@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ChatInterface from '@/components/ChatInterface';
 import { UserProfile } from '@/utils/voiceProfiles';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const Index = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -15,12 +16,17 @@ const Index = () => {
   });
 
   return (
-    <div className="flex h-screen">
-      <Sidebar onProfileChange={setUserProfile} />
-      <main className="flex-1">
-        <ChatInterface userProfile={userProfile} />
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full">
+        <Sidebar onProfileChange={setUserProfile} />
+        <main className="flex-1">
+          <div className="p-4">
+            <SidebarTrigger />
+          </div>
+          <ChatInterface userProfile={userProfile} />
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 
