@@ -6,6 +6,7 @@ import { Loader2, Download, Info, RefreshCcw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile, buildInstructions } from '@/utils/voiceProfiles';
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -39,22 +40,23 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
     setIsGenerating(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       const instructions = buildInstructions(userProfile);
       
-      const simulatedResponse = "This is a simulated response based on your profile settings. In a complete implementation, this would connect to OpenAI with your specified tone settings:\n\n" +
-        `• Communication Style: ${userProfile.communicationStyle}\n` +
-        `• Content Format: ${userProfile.contentFormat}\n` +
-        `• Generation: ${userProfile.generation}\n` +
-        `• Length: ${userProfile.length}\n` +
-        `• Tone Flair: ${userProfile.toneFlair}\n` +
-        `• Ultra-Direct: ${userProfile.ultraDirect ? "Enabled" : "Disabled"}\n` +
-        (userProfile.referenceText ? "• Reference document has been included" : "");
-      
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          messages: [
+            { role: 'system', content: instructions },
+            ...messages,
+            userMessage
+          ]
+        }
+      });
+
+      if (error) throw error;
+
       const assistantMessage: Message = { 
         role: 'assistant',
-        content: simulatedResponse
+        content: data.response
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
