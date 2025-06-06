@@ -76,13 +76,13 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
     setInput(lastPrompt);
   };
 
-  const handleDownload = () => {
+  const handleDownload = (format: 'text' | 'word' = downloadFormat) => {
     const assistantMessages = messages.filter(m => m.role === 'assistant');
     if (assistantMessages.length === 0) return;
     
     const content = assistantMessages[assistantMessages.length - 1].content;
     
-    if (downloadFormat === 'word') {
+    if (format === 'word') {
       const header = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Export HTML to Word Document with JavaScript</title></head><body>';
       const footer = "</body></html>";
       const sourceHTML = header + content.replace(/\n/g, "<br>") + footer;
@@ -193,7 +193,7 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
                 size="sm" 
                 onClick={() => {
                   setDownloadFormat('text');
-                  handleDownload();
+                  handleDownload('text');
                 }}
               >
                 <Download className="h-3 w-3 mr-1" /> Text
@@ -203,7 +203,7 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
                 size="sm" 
                 onClick={() => {
                   setDownloadFormat('word');
-                  handleDownload();
+                  handleDownload('word');
                 }}
               >
                 <Download className="h-3 w-3 mr-1" /> Word
