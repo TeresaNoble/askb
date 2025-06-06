@@ -140,7 +140,7 @@ const ChatInterface = ({ userProfile }: ChatInterfaceProps) => {
               <li>A short email to your boss</li>
               <li>A Slack announcement for your team</li>
               <li>An explainer for a doc</li>
-              <li>Even a birthday card line for your dog groomers aunt</li>
+              <li>Even a birthday card line for your dog groomer's aunt</li>
             </ul>
             <p>
               Once you type your message idea below, I'll rewrite it for your audience,
