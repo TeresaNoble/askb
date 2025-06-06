@@ -30,9 +30,9 @@ const Sidebar = ({ onProfileChange }: SidebarProps) => {
   const [ultraDirect, setUltraDirect] = useState(false);
   const [referenceText, setReferenceText] = useState<string>("");
 
-  const toneFlairLabel = (): ToneFlair => {
-    if (toneFlair < 33) return "Nip";
-    if (toneFlair < 66) return "Slash";
+  const toneFlairLabel = (value: number = toneFlair): ToneFlair => {
+    if (value < 33) return "Nip";
+    if (value < 66) return "Slash";
     return "Blaze";
   };
 
@@ -117,11 +117,11 @@ const Sidebar = ({ onProfileChange }: SidebarProps) => {
           </div>
         </div>
 
-        <ToneFlairSlider 
+        <ToneFlairSlider
           value={toneFlair}
           onChange={(value) => {
             setToneFlair(value);
-            updateProfile({ toneFlair: toneFlairLabel() });
+            updateProfile({ toneFlair: toneFlairLabel(value) });
           }}
         />
 
